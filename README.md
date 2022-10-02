@@ -7,7 +7,9 @@ using [Kaelzhang's library](https://github.com/kaelzhang/DA-RNN-in-Tensorflow-2-
 
 
 In sample results:
+
 <img src="https://github.com/0zean/DA-RNN/blob/main/Figure_1.png?raw=true" width=75% height=75%>
 
 Out of sample results:
+
 <img src="https://github.com/0zean/DA-RNN/blob/main/Figure_2.png?raw=true" width=75% height=75%>
