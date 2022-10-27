@@ -38,7 +38,7 @@ VALIDATION_RATIO = 0.2
 DROPOUT = 0
 
 
-tseries = TimeSeries(key='RDO0LSA057HUKGIP', output_format='pandas')
+tseries = TimeSeries(key='YOUR_API_KEY', output_format='pandas')
 data, meta_data = tseries.get_intraday(symbol='AAPL', interval='5min', outputsize='full')
 stock = data
 
