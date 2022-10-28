@@ -8,6 +8,8 @@ import talib
 
 from path_signature import *
 
+
+# Arima Model
 def arma_(signal):
     best_arima = None
     src = signal
@@ -43,6 +45,7 @@ def arma_(signal):
     return reverse_close(best_arima.predict())
 
 
+# Fisher Transform
 def FISH(cls, period: int = 10, adjust: bool = True):
     np.seterr(divide="ignore")
 
@@ -58,6 +61,7 @@ def FISH(cls, period: int = 10, adjust: bool = True):
         name="{0} period FISH.".format(period),)
 
 
+# Inverse Fisher Transform of RSI
 def IFT_RSI(cls, rsi_period: int = 5, wma_period: int = 9,):
     v1 = pd.Series(0.1 * (talib.RSI(cls, timeperiod=rsi_period) - 50), name="v1")
     d = (wma_period * (wma_period + 1)) / 2
@@ -77,6 +81,7 @@ def IFT_RSI(cls, rsi_period: int = 5, wma_period: int = 9,):
     return ift
 
 
+# Jurik Moving Average
 def JMA(cls, length=7, phase=50, power=2):
     if phase < -100:
         phase_ratio = 0.5
@@ -114,17 +119,17 @@ class Data_Generator:
         periods = np.double(np.array(list(range(0, len(source['1. open'])))))
 
         # Technical Analysis functions
-        ht = talib.HT_DCPERIOD(source['1. open'])
-        std = talib.STDDEV(source['1. open'], timeperiod=14, nbdev=1)
-        htm = talib.HT_TRENDMODE(source['1. open'])
-        rsi = talib.RSI(source['1. open'], timeperiod=14)
-        wma = talib.WMA(source['1. open'], timeperiod=20)
-        mavp = talib.MAVP(source['1. open'], periods, minperiod=2, maxperiod=30, matype=0)
-        roc = talib.ROC(source['1. open'])
-        cmo = talib.CMO(source['1. open'])
-        natr = talib.NATR(source['2. high'].shift(1), source['3. low'].shift(1), source['4. close'].shift(1), timeperiod=14)
-        hdp = talib.HT_DCPHASE(source['1. open'])
-        ang = talib.LINEARREG_ANGLE(source['1. open'], timeperiod=14)
+        ht = talib.HT_DCPERIOD(source['1. open']) # Hilbert Transform Dominant Cycle Period
+        std = talib.STDDEV(source['1. open'], timeperiod=14, nbdev=1) # Standard Deviation
+        htm = talib.HT_TRENDMODE(source['1. open']) # Hilbert Transform Trend 
+        rsi = talib.RSI(source['1. open'], timeperiod=14) # Relative Strenght Index
+        wma = talib.WMA(source['1. open'], timeperiod=20) # Weighted Moving Average
+        mavp = talib.MAVP(source['1. open'], periods, minperiod=2, maxperiod=30, matype=0) # Moving Average Variable Period
+        roc = talib.ROC(source['1. open']) # Rate of Change
+        cmo = talib.CMO(source['1. open']) # Chande Momentum Oscillator
+        natr = talib.NATR(source['2. high'].shift(1), source['3. low'].shift(1), source['4. close'].shift(1), timeperiod=14) # Norm ATR
+        hdp = talib.HT_DCPHASE(source['1. open']) # Hilbert Transform Dominant Cycle Phase
+        ang = talib.LINEARREG_ANGLE(source['1. open'], timeperiod=14) # Linear Regression Angle
         one = source['4. close'].shift(1)
         two = source['4. close'].shift(2)
         three = source['4. close'].shift(3)
@@ -141,9 +146,9 @@ class Data_Generator:
         tf = li.trendflex(source['1. open'], 20)
         jma = JMA(cls=source['1. open'])
         ip, qt = talib.HT_PHASOR(source['1. open'])
-        kurt = source['1. open'].rolling(14).kurt()
-        skew = source['1. open'].rolling(14).skew()
-        quantile = source['1. open'].rolling(14).quantile(.4, interpolation='midpoint')
+        kurt = source['1. open'].rolling(14).kurt() # Rolling Kurtosis
+        skew = source['1. open'].rolling(14).skew() # Rolling Skew
+        quantile = source['1. open'].rolling(14).quantile(.4, interpolation='midpoint') # Rolling Quantile
         sig = signature(source['1. open'])
         ma7 = source['1. open'].rolling(window=7).mean()
         ma21 = source['1. open'].rolling(window=21).mean()
@@ -153,7 +158,7 @@ class Data_Generator:
         sd20 = source['1. open'].rolling(20).std()
         ub = ma21 + (sd20*2)
         lb = ma21 - (sd20*2)
-        arma = arma_(source['1. open'])
+        arma = arma_(source['1. open']) # Arima model
 
         # Append features to open price & append target (close price) at the end
         feats = [ht,std,htm,rsi,wma,mavp,roc,cmo,natr,hdp,ang,one,two,
@@ -163,7 +168,7 @@ class Data_Generator:
         x = np.array(source['1. open']).reshape(-1, 1)
         for i in feats:
             x = np.hstack((x, np.array(i).reshape(-1, 1)))
-        x = np.hstack((x, np.array(sig)))
+        x = np.hstack((x, np.array(sig))) # Truncated Rough Path Signatures
         x = np.hstack((x, np.array(source['4. close']).reshape(-1, 1)))
 
         # Remove all rows with NaN values
