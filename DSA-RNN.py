@@ -40,7 +40,7 @@ DROPOUT = 0
 
 tseries = TimeSeries(key='YOUR_API_KEY', output_format='pandas')
 data, meta_data = tseries.get_intraday(symbol='AAPL', interval='5min', outputsize='full')
-stock = data
+stock = data[::-1]
 
 data_gen = Data_Generator(series=stock, window_size=WINDOW_SIZE, y_dim=Y_DIM)
 raw_data = data_gen.feature_generator()
