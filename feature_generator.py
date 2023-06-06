@@ -1,10 +1,13 @@
-from itertools import product
-
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
 import legitindicators as li
 import talib
+from itertools import product
+import statsmodels.api as sm
+
+from tsfresh import extract_features, select_features
+from tsfresh.utilities.dataframe_functions import roll_time_series, make_forecasting_frame
+from tsfresh.utilities.dataframe_functions import impute
 
 from path_signature import *
 
@@ -115,13 +118,42 @@ class Data_Generator:
     def feature_generator(self):
         source, n_past, n_future = self.s, self.ws, self.yd
 
+
+        # TSFRESH Features
+        df = source['1. open']
+        df_melted = pd.DataFrame({"open": df.copy()})
+        df_melted["dates"] = df_melted.index
+        df_melted["Symbols"] = "AAPL"
+
+        df_rolled = roll_time_series(df_melted, column_id="Symbols", column_sort="dates",
+                                     max_timeshift=20, min_timeshift=5)
+
+        X = extract_features(df_rolled.drop("Symbols", axis=1),
+                             column_id="id", column_sort="dates", column_value="open",
+                             impute_function=impute, show_warnings=False)
+
+        X = X.set_index(X.index.map(lambda x: x[1]), drop=True)
+        X.index.name = "last_date"
+
+        y = df_melted.set_index("dates").sort_index().open.shift(-1)
+
+        y = y[y.index.isin(X.index)]
+        X = X[X.index.isin(y.index)]
+
+        X_train = X["2022-11-10 09:40:00":"2022-11-15 15:40:00"]
+        y_train = y["2022-11-10 09:40:00":"2022-11-15 15:40:00"]
+
+        X_train_selected = select_features(X_train, y_train)
+
+        X = X[X_train_selected.columns]
+
         # Index array for TA
         periods = np.double(np.array(list(range(0, len(source['1. open'])))))
 
         # Technical Analysis functions
         ht = talib.HT_DCPERIOD(source['1. open']) # Hilbert Transform Dominant Cycle Period
         std = talib.STDDEV(source['1. open'], timeperiod=14, nbdev=1) # Standard Deviation
-        htm = talib.HT_TRENDMODE(source['1. open']) # Hilbert Transform Trend 
+        htm = talib.HT_TRENDMODE(source['1. open']) # Hilbert Transform Trend
         rsi = talib.RSI(source['1. open'], timeperiod=14) # Relative Strenght Index
         wma = talib.WMA(source['1. open'], timeperiod=20) # Weighted Moving Average
         mavp = talib.MAVP(source['1. open'], periods, minperiod=2, maxperiod=30, matype=0) # Moving Average Variable Period
@@ -169,6 +201,7 @@ class Data_Generator:
         for i in feats:
             x = np.hstack((x, np.array(i).reshape(-1, 1)))
         x = np.hstack((x, np.array(sig))) # Truncated Rough Path Signatures
+        x = np.hstack((x, np.array(X)))
         x = np.hstack((x, np.array(source['4. close']).reshape(-1, 1)))
 
         # Remove all rows with NaN values
